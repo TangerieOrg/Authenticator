@@ -1,5 +1,5 @@
-import { composeRedirectURL, decodeState, getOAuthURL, getUserDetails, requestAccessToken } from "OAuth";
-import { getDBUser, getOrCreateUser, removeUserIDCookie, setUserIDCookie } from "UserTracking";
+import { composeRedirectURL, decodeState, getOAuthURL, getUserDetails, requestAccessToken } from "./OAuth";
+import { getDBUser, getOrCreateUser, removeUserIDCookie, setUserIDCookie } from "./UserTracking";
 import express from "express";
 import asyncHandler from "express-async-handler"
 

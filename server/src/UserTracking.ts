@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { randomBytes } from "crypto";
-import { RedisClient } from "middleware/Redis";
+import { RedisClient } from "./middleware/Redis";
 
 export const USER_COOKIE_KEY = 'userid';
 

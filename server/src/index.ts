@@ -5,7 +5,7 @@ dotenv.config({
     path: path.join(process.cwd(), process.env.NODE_ENV === 'development' ? ".env.development" : ".env")
 });
 
-import server from 'server';
+import server from './server';
 
 const port = process.env.EXPRESS_PORT ?? 80;
 

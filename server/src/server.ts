@@ -1,12 +1,12 @@
 import express from "express";
 import cors from "cors";
 import CookieMiddleware from "cookie-parser";
-import { RedisMiddleware } from "middleware/Redis";
-import { NoCacheMiddleware } from "middleware/NoCache";
-import { LoggingMiddleware } from "middleware/Logging";
-import routes from "routes";
-import { ErrorMiddleware } from "middleware/Error";
-import { UserCookiesMiddleware } from "UserTracking";
+import { RedisMiddleware } from "./middleware/Redis";
+import { NoCacheMiddleware } from "./middleware/NoCache";
+import { LoggingMiddleware } from "./middleware/Logging";
+import routes from "./routes";
+import { ErrorMiddleware } from "./middleware/Error";
+import { UserCookiesMiddleware } from "./UserTracking";
 
 const server = express();
 
