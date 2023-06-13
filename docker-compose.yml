@@ -19,7 +19,8 @@ services:
     networks:
       - default
       - authenticator-overlay
-  
+      - nginx-proxy-overlay
+
 volumes:
   redis-data:
   redis-conf:
@@ -27,5 +28,8 @@ volumes:
 networks:
   default:
   authenticator-overlay:
+    external: true
+    driver: overlay
+  nginx-proxy-overlay:
     external: true
     driver: overlay

@@ -2,7 +2,7 @@ name: Production Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 env:
@@ -12,8 +12,28 @@ env:
   REGISTRY_NAME: docker.tangerie.xyz
 
 jobs:
+  check-changes:
+    runs-on: [self-hosted, builder]
+    outputs:
+      value: ${{ steps.changes.outputs.source }}
+    steps:
+      - name: Pull repo
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          clean: true
+      - uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            source:
+              - 'server/**'
+      - name: Debug
+        run: echo File Changes in server = ${{ steps.changes.outputs.source }}
   server-build:
     runs-on: [self-hosted, builder]
+    needs: check-changes
+    if: needs.check-changes.outputs.value == 'true'
     steps:
       - name: Pull repo
         uses: actions/checkout@v3
@@ -51,13 +71,13 @@ jobs:
           -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
           --build-arg OAUTH_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
           server
-    
+
   deploy:
     uses: TangerieOrg/Workflows/.github/workflows/docker-deploy.yml@main
-    needs: 
+    needs:
       - server-build
     with:
       image_name: authenticator
       registry_name: docker.tangerie.xyz
-      
+
     secrets: inherit
