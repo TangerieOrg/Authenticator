@@ -1,39 +1,7 @@
-import { NextFunction, Request, Response } from "express";
 import { randomBytes } from "crypto";
 import { RedisClient } from "./middleware/Redis";
 
-export const USER_COOKIE_KEY = 'userid';
-
-export interface UserCookieState {
-    UserId : string;
-}
-
-export const UserCookiesMiddleware = async (req : Request, res : Response, next : NextFunction) => {
-    const UserId : string | undefined = req.signedCookies[USER_COOKIE_KEY];
-
-    if(UserId) req.user = { UserId };
-
-    next();
-}
-
 export const createUserId = () => randomBytes(20).toString("hex");
-
-export const setUserIDCookie = (userId : string, res : Response) => {
-    res.cookie(USER_COOKIE_KEY, userId, {
-        signed: true,
-        expires: new Date(9999, 1),
-        sameSite: 'none',
-        path: '/'
-    });
-}
-
-export const removeUserIDCookie = (res : Response) => {
-    res.clearCookie(USER_COOKIE_KEY, {
-        signed: true,
-        sameSite: 'none',
-        path: '/'
-    })
-}
 
 export interface DBUser {
     UserId : string; // The cookie assigned to the user

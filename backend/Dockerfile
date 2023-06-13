@@ -12,6 +12,9 @@ RUN npm run build
 
 FROM node:18.3.0
 
+ARG OAUTH_CLIENT_SECRET
+ENV OAUTH_CLIENT_SECRET=$OAUTH_CLIENT_SECRET
+
 WORKDIR /app
 
 COPY package*.json ./

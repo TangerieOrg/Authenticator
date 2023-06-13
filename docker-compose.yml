@@ -7,17 +7,27 @@ services:
       - redis-conf:/usr/local/etc/redis/redis.conf
     deploy:
       replicas: 1
+      
+  backend:
+    image: ${IMAGE_NAME}/backend:latest
+    deploy:
+      replicas: 1
+    depends_on:
+      - redis
+    networks:
+      - default
+      - authenticator-overlay
+
   server:
-    image: ${IMAGE_NAME}:latest
+    image: ${IMAGE_NAME}/server:latest
     deploy:
       replicas: 1
       labels:
         xyz.tangerie.reverse_proxy.path: "/oauth"
         xyz.tangerie.reverse_proxy.port: "80"
     depends_on:
-      - redis
+      - backend
     networks:
-      - default
       - authenticator-overlay
       - nginx-proxy-overlay
 

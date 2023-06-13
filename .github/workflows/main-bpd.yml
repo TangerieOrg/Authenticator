@@ -1,4 +1,4 @@
-name: Production Build
+name: Docker Build
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
   REGISTRY_NAME: docker.tangerie.xyz
 
 jobs:
-  check-changes:
+  check-backend-changes:
     runs-on: [self-hosted, builder]
     outputs:
       value: ${{ steps.changes.outputs.source }}
@@ -27,13 +27,13 @@ jobs:
         with:
           filters: |
             source:
-              - 'server/**'
+              - 'backend/**'
       - name: Debug
-        run: echo File Changes in server = ${{ steps.changes.outputs.source }}
-  server-build:
+        run: echo File Changes in backend = ${{ steps.changes.outputs.source }}
+  build-backend:
     runs-on: [self-hosted, builder]
-    needs: check-changes
-    if: needs.check-changes.outputs.value == 'true'
+    needs: check-backend-changes
+    if: needs.check-backend-changes.outputs.value == 'true'
     steps:
       - name: Pull repo
         uses: actions/checkout@v3
@@ -60,22 +60,33 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Print data
-        run: echo Building to ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }} ${{env.CURRENT_TAG}}
+        run: echo Building to ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}/backend ${{env.CURRENT_TAG}}
 
-      - name: Build and push image (${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }})
+      - name: Build and push image (${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}/backend)
         run: >
           docker buildx build 
           --push
           --platform ${{env.ARCH_LIST}}
-          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:${{env.CURRENT_TAG}}
-          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
+          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}/backend:${{env.CURRENT_TAG}}
+          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}/backend:latest
           --build-arg OAUTH_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
-          server
+          backend
+
+  build-server:
+    uses: TangerieOrg/Workflows/.github/workflows/docker-build-push.yml@main
+    with:
+      image_name: authenticator/server
+      registry_name: docker.tangerie.xyz
+      ref: main
+      path: server
+      force_build: 'true'
+    secrets: inherit
 
   deploy:
     uses: TangerieOrg/Workflows/.github/workflows/docker-deploy.yml@main
     needs:
-      - server-build
+      - build-backend
+      - build-server
     with:
       image_name: authenticator
       registry_name: docker.tangerie.xyz

@@ -1,77 +1,54 @@
-import { composeRedirectURL, decodeState, getOAuthURL, getUserDetails, requestAccessToken } from "./OAuth";
-import { getDBUser, getOrCreateUser, removeUserIDCookie, setUserIDCookie } from "./UserTracking";
 import express from "express";
 import asyncHandler from "express-async-handler"
+import * as Authenticator from "@tangerie/authenticator-api";
+import { composeRedirectURL, decodeState } from "./util";
+import { removeUserIDCookie, setUserIDCookie } from "./cookies";
+
+Authenticator.configure({
+    url: process.env.AUTHENTICATOR_URL
+})
 
 const routes = express.Router();
 
-routes.get('/url', (req, res) => {
-    const { redirect, ...data } = req.query;
-
+routes.get('/login', asyncHandler(async (req, res) => {
+    const redirect = req.query.redirect as string; 
     if(!redirect || redirect.length === 0) throw new Error("No redirect URL provided");
+    const url = await Authenticator.getAuthURL({ redirect });
+    res.redirect(url);
+}));
 
-    res.json({
-        url: getOAuthURL({
-            redirect,
-            data: data ?? {}
-        })
-    });
-});
+routes.get('/logout', (req, res) => {
+    const redirect = req.query.redirect as string; 
+    if(!redirect || redirect.length === 0) throw new Error("No redirect URL provided");
+    if(!req.userid) throw new Error("Not Logged In");
+    removeUserIDCookie(res);
+    res.redirect(redirect);
+})
 
 routes.get('/callback', asyncHandler(async (req, res) => {
     const code = req.query.code as string;
     if(!code) throw new Error("Invalid Request");
 
-
     const state = decodeState(req.query.state as string);
     if(!state) throw new Error("No state provided");
 
+    const userId = await Authenticator.requestUserID(code)
+    
+    setUserIDCookie(userId, res);
+
     const redirectURL = composeRedirectURL(state.redirect, state.data);
 
-    const access_token = await requestAccessToken(code);
-
-    if(!access_token) {
-        // Redirect if auth fails
-        res.redirect(redirectURL);
-        throw new Error("Authentication Request Failed");
-    }
-
-    const githubUser = await getUserDetails(access_token);
-
-    // Create or get user
-    // Update database
-    const user = await getOrCreateUser(githubUser.id, access_token, req.redis);
-    // Set cookie
-    setUserIDCookie(user.UserId, res);
-
-    // Redirect
     res.redirect(redirectURL);
 }));
 
-routes.get('/user', asyncHandler(async (req, res) => {
-    if(!req.user) throw new Error("No UserID");
-
-    const dbUser = await getDBUser(req.user.UserId, req.redis).catch(() => {
-        removeUserIDCookie(res);
-        throw new Error("User not in database");
-    });
-
-
-    const user = await getUserDetails(dbUser.access_token).catch(() => {
-        removeUserIDCookie(res);
-        throw new Error("Access Token Expired");
-    });
-
-    res.json(user);
-}));
-
-routes.get("/logout", (req, res) => {
-    if(!req.user) throw new Error("Not Logged In");
-
-    removeUserIDCookie(res);
-    res.json({
-        message: "Logged Out"
+routes.get('/check', asyncHandler(async (req, res) => {
+    await Authenticator.getGithubUser(req.userid ?? "")
+    .then(() => {
+        res.json({ success: true });
     })
-})
+    .catch(() => {
+        res.json({ success: false })
+    });
+}))
 
 export default routes;

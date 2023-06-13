@@ -1,12 +1,8 @@
 import express from "express";
 import cors from "cors";
 import CookieMiddleware from "cookie-parser";
-import { RedisMiddleware } from "./middleware/Redis";
-import { NoCacheMiddleware } from "./middleware/NoCache";
-import { LoggingMiddleware } from "./middleware/Logging";
+import { getUserIDCookie } from "./cookies";
 import routes from "./routes";
-import { ErrorMiddleware } from "./middleware/Error";
-import { UserCookiesMiddleware } from "./UserTracking";
 
 const server = express();
 
@@ -19,16 +15,32 @@ server.use(
     express.json(),
     express.urlencoded({ extended: true }),
     CookieMiddleware(process.env.COOKIE_SECRET || "cookie_secret"),
-    UserCookiesMiddleware,
-    NoCacheMiddleware,
-    LoggingMiddleware,
-    RedisMiddleware
 );
+
+server.use((req, res, next) => {
+    // No Cache
+    res.setHeader("Surrogate-Control", "no-store");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Expires", "0");
+
+    // Logging
+    const ip = req.headers['x-real-ip'] || req.connection.remoteAddress;
+    console.log(`[${ip}] ${req.url} (${JSON.stringify(req.body)})`);
+
+    req.userid = getUserIDCookie(req);
+
+    next();
+})
 
 server.use('/', routes);
 
-server.use(
-    ErrorMiddleware
-)
+// @ts-ignore
+server.use((err, req, res, next) => {
+    if(!res.headersSent) {
+        console.log(`[ERR] '${err.message}'`);
+        res.status(400);
+        res.json({ error: err.message });
+    }
+})
 
 export default server;
