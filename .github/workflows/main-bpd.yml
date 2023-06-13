@@ -1,0 +1,63 @@
+name: Production Build
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  ARCH_LIST: linux/arm64/v8,linux/amd64
+  CURRENT_TAG: ${{ github.sha }}
+  IMAGE_NAME: authenticator
+  REGISTRY_NAME: docker.tangerie.xyz
+
+jobs:
+  server-build:
+    runs-on: [self-hosted, builder]
+    steps:
+      - name: Pull repo
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+          clean: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Login
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY_NAME }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Print data
+        run: echo Building to ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }} ${{env.CURRENT_TAG}}
+
+      - name: Build and push image (${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }})
+        run: >
+          docker buildx build 
+          --push
+          --platform ${{env.ARCH_LIST}}
+          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:${{env.CURRENT_TAG}}
+          -t ${{ env.REGISTRY_NAME }}/${{ env.IMAGE_NAME }}:latest
+          --build-arg OAUTH_CLIENT_SECRET=${{ secrets.OAUTH_CLIENT_SECRET }}
+          server
+    
+  deploy:
+    uses: TangerieOrg/Workflows/.github/workflows/docker-deploy.yml@main
+    needs: 
+      - server-build
+    with:
+      image_name: authenticator
+      registry_name: docker.tangerie.xyz
+      
+    secrets: inherit
