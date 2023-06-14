@@ -87,6 +87,10 @@ export function requestUserID(code : string) {
     return request<{UserId : string}>("authenticate", { code }).then(d => d.UserId);
 }
 
+export function validate(userId : string) {
+    return request<{valid : boolean, GithubId: number }>("valid", undefined, userId);
+}
+
 export function getGithubUser(userId : string) {
     return request<GithubUser>("user", undefined, userId);
 }

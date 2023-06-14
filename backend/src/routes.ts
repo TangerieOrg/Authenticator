@@ -47,7 +47,6 @@ routes.get('/valid', asyncHandler(async (req, res) => {
     res.json({
         valid: true,
         GithubId: dbUser.GithubId
-
     })
 }));
 
