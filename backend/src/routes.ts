@@ -37,6 +37,20 @@ routes.get('/authenticate', asyncHandler(async (req, res) => {
     res.json({ UserId });
 }));
 
+routes.get('/valid', asyncHandler(async (req, res) => {
+    if(!req.user) throw new Error("No UserID");
+
+    const dbUser = await getDBUser(req.user.UserId, req.redis).catch(() => {
+        throw new Error("User not in database");
+    });
+
+    res.json({
+        valid: true,
+        GithubId: dbUser.GithubId
+
+    })
+}));
+
 routes.get('/user', asyncHandler(async (req, res) => {
     if(!req.user) throw new Error("No UserID");
 

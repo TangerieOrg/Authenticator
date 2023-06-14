@@ -38,10 +38,12 @@ export interface GithubUser {
 
 export interface Configuration {
     url : string;
+    debug : boolean;
 }
 
 let config : Configuration = {
-    url: ""
+    url: "",
+    debug: false
 }
 
 const getUrl = (path : string) => new URL(path, config.url).toString();
@@ -50,17 +52,26 @@ export function configure(cfg : Partial<Configuration>) {
     config = merge(config, cfg);
 }
 
-const request = <T extends any = any>(path : string, payload? : object, userId ?: string) => axios({
-    url: getUrl(path),
-    data: JSON.stringify({
+const request = <T extends any = any>(path : string, payload? : object, userId ?: string) => {
+    const url = getUrl(path);
+    const data = JSON.stringify({
         userId,
         payload
-    }),
-    method: "GET",
-    headers: {
-        'Content-Type': 'application/json'
+    });
+
+    if(config.debug) {
+        console.log(`[Authenticator] ${url} ${data}`);
     }
-}).then(r => r.data as T).catch((err) => { throw new Error(err?.response?.data?.error ?? err.message) })
+
+    return axios({
+        url,
+        data,
+        method: "GET",
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    }).then(r => r.data as T).catch((err) => { throw new Error(err?.response?.data?.error ?? err.message) })
+}
 
 /**
  * Get the Github OAuth url, providing a redirect string and a data object
