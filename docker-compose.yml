@@ -12,11 +12,16 @@ services:
     image: ${IMAGE_NAME}/backend:latest
     deploy:
       replicas: 1
+      labels:
+        xyz.tangerie.reverse_proxy.path: "/auth"
+        xyz.tangerie.reverse_proxy.port: "80"
+        xyz.tangerie.reverse_proxy.server_name: "media"
     depends_on:
       - redis
     networks:
       - default
       - authenticator-overlay
+      - nginx-proxy-overlay
 
   server:
     image: ${IMAGE_NAME}/server:latest
